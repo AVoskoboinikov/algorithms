@@ -23,12 +23,9 @@ func main() {
 		log.Fatal(fmt.Sprintf("Failed to read file: %s", err))
 	}
 
-	//fmt.Println(size, itms)
-
-	//values := make(map[string]int, (len(itms)+1)*(size+1))
-	values := map[string]int{}
-	for x := 0; x < size+1; x++ {
-		values[key(0, x)] = 0
+	values := make([][]int, len(itms)+1)
+	for i := 0; i < len(values); i++ {
+		values[i] = make([]int, size+1)
 	}
 
 	j := 1
@@ -39,32 +36,31 @@ func main() {
 			j++
 
 			if itms[i-1].weight > x {
-				values[key(i,x)] = values[key(i-1, x)]
+				values[i][x] = values[i-1][x]
 				continue
 			}
 
-			values[key(i,x)] = int(
+			values[i][x] = int(
 				math.Max(
-					float64(values[key(i-1, x)]),
-					float64(values[key(i-1, x-itms[i-1].weight)]+itms[i-1].value),
+					float64(values[i-1][x]),
+					float64(values[i-1][x-itms[i-1].weight]+itms[i-1].value),
 				),
 			)
 		}
 	}
 
-	k := fmt.Sprintf("%v:%v",len(itms),size)
-	fmt.Println(values[k])
+	fmt.Println(values[len(itms)][size])
 	//fmt.Println(values)
 }
 
 func key(i int, j int) string {
-	//return fmt.Sprintf("%v:%v",i,j)
-	return fmt.Sprint(i,":",j)
+	return fmt.Sprintf("%v:%v",i,j)
 }
 
 func readFile() (int, Items, error) {
 	// 2493893
 	//file, err := os.Open("/Users/andrii/go/src/github.com/magento-mcom/coursera/knapsack/knapsack.txt")
+	// 4243395
 	file, err := os.Open("/Users/andrii/go/src/github.com/magento-mcom/coursera/knapsack/knapsack_big.txt")
 	if err != nil {
 		return 0, nil, err
