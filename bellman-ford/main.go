@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+const MaxWeight = 999999
+
 type Edge struct {
 	from   int
 	to     int
@@ -18,7 +20,7 @@ func newGraph(edges []Edge) *Graph {
 	g := Graph{
 		edges:       edges,
 		edgesToFrom: make(map[int][]int),
-		cache:       make(map[int]map[int]int),
+		cache:       make([][]int, 0),
 		vertices: 	 make([]int, 0),
 	}
 
@@ -46,19 +48,19 @@ type Graph struct {
 	vertices	[]int
 	edges       []Edge
 	edgesToFrom map[int][]int
-	cache       map[int]map[int]int
+	cache       [][]int
 }
 
 func (g *Graph) findShortestPathFromSource(s int) {
-	g.cache = make(map[int]map[int]int)
-
-	for i := range g.edges {
-		g.cache[i] = map[int]int{s: 0}
+	g.cache = make([][]int, len(g.edges))
+	for i := 1; i <= (len(g.edges) - 1); i++ {
+		g.cache[i] = make([]int, len(g.edgesToFrom))
+		g.cache[i][s] = 0
 	}
 
 	for _, v := range g.vertices {
 		if s != v {
-			g.cache[0][v] = 999999
+			g.cache[0][v] = MaxWeight
 		}
 	}
 
@@ -101,7 +103,7 @@ func main() {
 	}
 
 	// i - count of edges - 1 if on iteration i=n shortest path is less than on i=n-1 - we have a cycle
-	minPath := 99999999
+	minPath := MaxWeight
 
 	//g.findShortestPathFromSource(5)
 
@@ -119,6 +121,10 @@ func main() {
 		}
 
 		for d, v := range g.cache[len(g.cache)-1] {
+			if d == 0 {
+				continue
+			}
+
 			if v < minPath && d != s {
 				minPath = v
 			}
@@ -129,7 +135,7 @@ func main() {
 }
 
 func readGraph() (*Graph, error) {
-	file, err := os.Open("/Users/andrii/go/src/github.com/magento-mcom/coursera/bellman-ford/g3.txt")
+	file, err := os.Open("/Users/andrii/go/src/github.com/magento-mcom/coursera/bellman-ford/g0.txt")
 	if err != nil {
 		return nil, err
 	}
