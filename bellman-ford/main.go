@@ -6,9 +6,41 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
-const MaxWeight = 999999
+const MaxPath = 999999
+const DefaultPath = -42
+
+type ShortestPathsCollection struct {
+	sync sync.RWMutex
+	collection []int
+}
+
+func (sp *ShortestPathsCollection) Add(p int) {
+	sp.sync.Lock()
+	defer sp.sync.Unlock()
+
+	sp.collection = append(sp.collection, p)
+}
+
+func (sp *ShortestPathsCollection) GetMin() int {
+	min := MaxPath
+	for _, p := range sp.collection {
+		if p < min {
+			min = p
+		}
+	}
+
+	return min
+}
+
+func (sp *ShortestPathsCollection) Count() int {
+	sp.sync.RLock()
+	defer sp.sync.RUnlock()
+
+	return len(sp.collection)
+}
 
 type Edge struct {
 	from   int
@@ -53,20 +85,23 @@ type Graph struct {
 
 func (g *Graph) findShortestPathFromSource(s int) {
 	g.cache = make([][]int, len(g.edges))
-	for i := 1; i <= (len(g.edges) - 1); i++ {
-		g.cache[i] = make([]int, len(g.edgesToFrom))
+	for i := 0; i <= (len(g.edges) - 1); i++ {
+		g.cache[i] = make([]int, len(g.vertices) + 1)
+		for j := 1; j <= len(g.vertices); j++ {
+			g.cache[i][j] = DefaultPath
+		}
 		g.cache[i][s] = 0
 	}
 
 	for _, v := range g.vertices {
 		if s != v {
-			g.cache[0][v] = MaxWeight
+			g.cache[0][v] = MaxPath
 		}
 	}
 
 	for i := 1; i <= (len(g.edges) - 1); i++ {
 		if i%1000 == 0 {
-			fmt.Println(fmt.Sprintf("%v out of %v", i, len(g.edges)))
+			//fmt.Println(fmt.Sprintf("%v: %v out of %v", s, i, len(g.edges)))
 		}
 
 		//t := time.Now()
@@ -78,10 +113,8 @@ func (g *Graph) findShortestPathFromSource(s int) {
 }
 
 func (g *Graph) findShortestPathToDestinationByBudget(d int, b int) int {
-	if v1, ok := g.cache[b]; ok {
-		if v2, ok := v1[d]; ok {
-			return v2
-		}
+	if v := g.cache[b][d]; v != DefaultPath {
+		return v
 	}
 
 	path := g.findShortestPathToDestinationByBudget(d, b-1)
@@ -103,39 +136,64 @@ func main() {
 	}
 
 	// i - count of edges - 1 if on iteration i=n shortest path is less than on i=n-1 - we have a cycle
-	minPath := MaxWeight
 
-	//g.findShortestPathFromSource(5)
 
-	for i, s := range g.vertices {
+	//g.findShortestPathFromSource(1)
+	//fmt.Println(g.cache)
+	spc := new(ShortestPathsCollection)
+	var wg sync.WaitGroup
+	sema := make(chan struct{}, 4)
+
+	for _, s := range g.vertices {
 		//if i%10 == 0 {
 		//}
+		s := s
 
-		fmt.Println("started...")
-		g.findShortestPathFromSource(s)
-		fmt.Println(fmt.Sprintf("%v out of %v", i, len(g.vertices)))
-		for k, v := range g.cache[len(g.cache)-1] {
-			if g.cache[len(g.cache)-2][k] != v {
-				panic("cycle found")
-			}
-		}
+		wg.Add(1)
+		sema <- struct{}{}
 
-		for d, v := range g.cache[len(g.cache)-1] {
-			if d == 0 {
-				continue
+		go func() {
+			defer wg.Done()
+			defer func() {<-sema}()
+
+			g, err := readGraph()
+			if err != nil {
+				panic(fmt.Sprintf("Couldn't read the graph: %v", err))
 			}
 
-			if v < minPath && d != s {
-				minPath = v
+			minPath := MaxPath
+
+			//fmt.Println("started...")
+			g.findShortestPathFromSource(s)
+			//fmt.Println(fmt.Sprintf("%v out of %v", i, len(g.vertices)))
+			for k, v := range g.cache[len(g.cache)-1] {
+				if g.cache[len(g.cache)-2][k] != v && v != DefaultPath {
+					panic("cycle found")
+				}
 			}
-		}
+
+			for d, v := range g.cache[len(g.cache)-1] {
+				if d == 0 {
+					continue
+				}
+
+				if v < minPath && d != s && v != DefaultPath {
+					minPath = v
+				}
+			}
+
+			spc.Add(minPath)
+			fmt.Println(spc.Count())
+
+		}()
 	}
 
-	fmt.Println(minPath)
+	wg.Wait()
+	fmt.Println(spc.GetMin())
 }
 
 func readGraph() (*Graph, error) {
-	file, err := os.Open("/Users/andrii/go/src/github.com/magento-mcom/coursera/bellman-ford/g0.txt")
+	file, err := os.Open("/Users/andrii/go/src/github.com/magento-mcom/coursera/bellman-ford/g3.txt")
 	if err != nil {
 		return nil, err
 	}
