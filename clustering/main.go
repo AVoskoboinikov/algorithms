@@ -85,6 +85,7 @@ func maxSpacingClustering()  {
 
 	fmt.Println(lastWeight)
 	fmt.Println(uf.clustersCount)
+
 }
 
 func nodeLisToWeighted(nl NodeList) WeightedNodeList {

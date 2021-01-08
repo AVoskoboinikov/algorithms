@@ -69,7 +69,6 @@ func numStream() (<-chan int, error) {
 	sc.Split(bufio.ScanLines)
 
 	ch := make(chan int)
-
 	go func() {
 		for sc.Scan() {
 			val, err := strconv.Atoi(sc.Text())

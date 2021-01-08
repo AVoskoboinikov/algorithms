@@ -9,6 +9,7 @@ type UnionFind struct {
 
 func (uf *UnionFind) GetParent(n int) int {
 	fmt.Printf(".")
+
 	if uf.nodes[n] != n {
 		uf.nodes[n] = uf.GetParent(uf.nodes[n])
 		return uf.nodes[n]
