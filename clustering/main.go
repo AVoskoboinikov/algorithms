@@ -35,6 +35,13 @@ func main() {
 	//p = uf.GetParent(2)
 	//p = uf.GetParent(9)
 	//p = uf.GetParent(8)
+	// new line
+	// new line
+	// new line
+	// new line
+	// new line
+	// new line
+	// new line
 	//fmt.Println(p)
 	maxSpacingClustering()
 	//maxClustersWithSpacing()
@@ -85,6 +92,7 @@ func maxSpacingClustering()  {
 
 	fmt.Println(lastWeight)
 	fmt.Println(uf.clustersCount)
+
 }
 
 func nodeLisToWeighted(nl NodeList) WeightedNodeList {
